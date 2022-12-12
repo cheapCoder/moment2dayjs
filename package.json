@@ -1,0 +1,39 @@
+{
+  "name": "moment-dayjs-codemod",
+  "version": "0.4.0",
+  "scripts": {
+    "lint": "eslint --cache .",
+    "test": "codemod-cli test",
+    "test:coverage": "codemod-cli test --coverage",
+    "update-docs": "codemod-cli update-docs",
+    "deploy": "git push && git push --tags && npm publish"
+  },
+  "bin": "./bin/cli.js",
+  "keywords": [
+    "moment",
+    "dayjs",
+    "codemod",
+    "momentjs",
+    "codemod-cli"
+  ],
+  "author": "Rajasegar Chandran <rajasegar.c@gmail.com>",
+  "license": "MIT",
+  "repository": "https://github.com/rajasegar/moment-dayjs-codemod",
+  "dependencies": {
+    "codemod-cli": "^3.1.2"
+  },
+  "devDependencies": {
+    "eslint": "^7.27.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "jest": "^26.6.3",
+    "prettier": "^2.3.0"
+  },
+  "engines": {
+    "node": "12.* || >= 14"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  }
+}
