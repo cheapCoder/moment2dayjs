@@ -6,6 +6,8 @@ inspired by [moment-dayjs-codemod](https://github.com/rajasegar/moment-dayjs-cod
 
 A collection of codemods for migrating from [moment.js](https://momentjs.com/) to [day.js](https://day.js.org/)
 
+使用[`@typescript-eslint/parser`](https://typescript-eslint.io/architecture/parser/)()处理`jsx|tsx`,其遵循estree标准, `typescript`并不遵循estree规范, 而`@babel/parser`会将注释解析成node[导致问题](https://github.com/facebook/jscodeshift/blob/main/recipes/retain-first-comment.md)
+
 ## Usage
 
 

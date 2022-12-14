@@ -2,15 +2,15 @@ const { run: jscodeshift } = require('jscodeshift/src/Runner');
 const path = require('node:path');
 
 async function what() {
-  const transformPath = path.resolve('./transforms/default/index.js');
-  const paths = ['./basic.input.js', './bar.js'];
+  const transformPath = path.resolve('./transform.js');
+  const paths = ['./example/2.use_jsx.jsx'];
   const options = {
     dry: true,
     print: true,
     verbose: 1,
     // ...
   };
-
+console.log(transformPath, paths);
   const res = await jscodeshift(transformPath, paths, options);
   console.log('----------------------------');
   console.log(res);

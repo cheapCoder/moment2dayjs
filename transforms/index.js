@@ -1,5 +1,4 @@
-const { getParser } = require('codemod-cli').jscodeshift;
-//const { getOptions } = require('codemod-cli');
+const { run: jscodeshift } = require('jscodeshift/src/Runner');
 
 const {
   toSingularUnits,
@@ -12,9 +11,9 @@ const {
 
 
 
-module.exports = function transformer(file, api) {
+module.exports = function transformer(file, api, {}) {
   console.log({file, api});
-  const j = getParser(api);
+  const j = jscodeshift;
   //const options = getOptions();
 
   const root = j(file.source);
