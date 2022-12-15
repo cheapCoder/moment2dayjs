@@ -3,7 +3,7 @@ const path = require('node:path');
 
 async function what() {
   const transformPath = path.resolve('./transform.js');
-  const paths = ['./example/2.use_jsx.jsx'];
+  const paths = ['./example/2.use_jsx.jsx', './example/3.test.ts'];
   const options = {
     dry: true,
     print: true,

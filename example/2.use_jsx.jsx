@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 console.log(moment());
 
-const a: Moment = moment();
+const a = moment();
 console.log(a.unix());
 
 /*对antd的Select进行封装，使得Select选择框的宽度自动跟随下拉菜单的宽度*/

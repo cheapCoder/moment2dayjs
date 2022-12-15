@@ -26,12 +26,13 @@ A collection of codemods for migrating from [moment.js](https://momentjs.com/) t
 
 ## Code Transform
 
+- import / require
 - api transform
   - `moment()` -> `dayjs()`
-  - `moment.isMoment()` -> ``
+  - `moment.isMoment()` -> `dayjs.isDayjs`
 - ts type transform 
   - import type
-  - asset type
+  -`Moment` type asset
 
 ### Installation
 
@@ -46,6 +47,7 @@ A collection of codemods for migrating from [moment.js](https://momentjs.com/) t
 ### References
 
 - [代码自动化重构利器——jscodeshift](https://zhuanlan.zhihu.com/p/353940140)
+- [老项目使用 dayjs 替代 moment 的注意事项](https://liuwenzhuang.github.io/2021/10/20/differences-between-dayjs-moment.html)
 - [You-Don't-Need-Momentjs](https://github.com/you-dont-need/You-Dont-Need-Momentjs)
 - [JsCodeShift](https://github.com/facebook/jscodeshift)
 - [AST Explorer](https://astexplorer.net/#/gist/7598ca87108e752f21bee9bffbd58ec2/149bbcbeebac06f6dd2290d75e775ec44578694c)
