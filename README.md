@@ -23,9 +23,11 @@ A collection of codemods for migrating from [moment.js](https://momentjs.com/) t
 - ts type transform 
   - import type
   - asset type
+  - 泛型
 
 ## Code Transform
 
+- [All listed in `You-Dont-Need-Momentjs`](https://github.com/you-dont-need/You-Dont-Need-Momentjs#parse)
 - import / require
 - api transform
   - `moment()` -> `dayjs()`

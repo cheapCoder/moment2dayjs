@@ -1,11 +1,4 @@
-import {
-  API,
-  ASTPath,
-  CallExpression,
-  FileInfo,
-  JSCodeshift,
-  Transform,
-} from 'jscodeshift';
+import { API, ASTPath, CallExpression, FileInfo, JSCodeshift, Transform } from 'jscodeshift';
 
 /**
  * @param str unit string
@@ -13,37 +6,14 @@ import {
  */
 const toSingle = (str: string) => str.replace(/s$/, '');
 
-
-
-
-
 // see: https://day.js.org/
-const singleUnits = [
-  'year',
-  'month',
-  'week',
-  'date',
-  'day',
-  'hour',
-  'minute',
-  'second',
-];
+const singleUnits = ['year', 'month', 'week', 'date', 'day', 'hour', 'minute', 'second'];
 
-const multipleUnits = [
-  'years',
-  'months',
-  'weeks',
-  'dates',
-  'days',
-  'hours',
-  'minutes',
-  'seconds',
-];
+const multipleUnits = ['years', 'months', 'weeks', 'dates', 'days', 'hours', 'minutes', 'seconds'];
 
 const units = [...singleUnits, ...multipleUnits];
 
-const getPropertyName = (path: ASTPath<any>) =>
-  path.node?.callee?.property?.name;
+const getPropertyName = (path: ASTPath<any>) => path.node?.callee?.property?.name;
 const includesProperties = (path: ASTPath<any>, properties: string[]) => {
   const propertyName = getPropertyName(path);
   return properties.includes(propertyName);
@@ -62,9 +32,7 @@ const replaceObjectArgument = (j: JSCodeshift, path: ASTPath<any>) => {
     return null;
   }
 
-  const needReplace = args.some((a: any) =>
-    units.includes(a.properties[0].key.name)
-  );
+  const needReplace = args.some((a: any) => units.includes(a.properties[0].key.name));
   if (!needReplace) {
     return null;
   }
@@ -222,12 +190,9 @@ const plugins: Plugin[] = [
       const args = path.node?.arguments;
       const isMomentConstructor =
         callee?.type?.toString() === 'Identifier' && callee?.name === 'moment';
-      const isObjectSupportFunction = [
-        'utc',
-        'set',
-        'add',
-        'subtract',
-      ].includes(getPropertyName(path));
+      const isObjectSupportFunction = ['utc', 'set', 'add', 'subtract'].includes(
+        getPropertyName(path)
+      );
       return (
         (isMomentConstructor || isObjectSupportFunction) &&
         args?.[0]?.type?.toString() === 'ObjectExpression'
@@ -250,8 +215,7 @@ const plugins: Plugin[] = [
       const propertyName = getPropertyName(path);
       const args = path.node?.arguments;
       return (
-        ['get', 'set'].includes(propertyName) &&
-        ['weekday', 'weekdays'].includes(args?.[0]?.value)
+        ['get', 'set'].includes(propertyName) && ['weekday', 'weekdays'].includes(args?.[0]?.value)
       );
     },
     replace: replaceGetSetToFunction,

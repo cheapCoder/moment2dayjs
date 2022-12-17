@@ -7,12 +7,8 @@ const {
   transformPluginMethods,
 } = require('./utils');
 
-
-
-
-
 module.exports = function transformer(file, api, {}) {
-  console.log({file, api});
+  console.log({ file, api });
   const j = jscodeshift;
   //const options = getOptions();
 
