@@ -15,7 +15,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "tsc -p tsconfig.json --watch",
-    "test": "jest -u --watch"
+    "test": "vitest watch -u"
   },
   "dependencies": {
     "dayjs": "^1.11.7",
@@ -26,16 +26,15 @@
   "devDependencies": {
     "@babel/core": "^7.20.5",
     "@babel/preset-env": "^7.20.2",
-    "@types/jest": "^29.2.4",
     "@types/jscodeshift": "^0.11.6",
     "@types/node": "^18.11.16",
     "@types/react": "^18.0.26",
+    "@typescript-eslint/eslint-plugin": "^5.46.1",
     "eslint": "^8.29.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "jest": "^29.3.1",
     "prettier": "^2.8.1",
-    "ts-jest": "^29.0.3",
-    "typescript": "^4.9.4"
+    "typescript": "^4.9.4",
+    "vitest": "^0.25.8"
   }
 }
