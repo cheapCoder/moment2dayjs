@@ -226,20 +226,20 @@ const transform: Transform = (file: FileInfo, api: API) => {
   const j = api.jscodeshift;
   const root = j(file.source);
 
-  const dayjsImport = root.find(j.ImportDeclaration, {
-    source: {
-      value: 'dayjs',
-    },
-  });
-  let hasDayjsImport = dayjsImport.nodes().length > 0;
-  const dayjsImportDeclaration = () => {
-    if (hasDayjsImport) return;
-    hasDayjsImport = true;
-    return j.importDeclaration.from({
-      source: j.literal('dayjs'),
-      specifiers: [j.importDefaultSpecifier(j.identifier('dayjs'))],
-    });
-  };
+  // const dayjsImport = root.find(j.ImportDeclaration, {
+  //   source: {
+  //     value: 'dayjs',
+  //   },
+  // });
+  // let hasDayjsImport = dayjsImport.nodes().length > 0;
+  // const dayjsImportDeclaration = () => {
+  //   if (hasDayjsImport) return;
+  //   hasDayjsImport = true;
+  //   return j.importDeclaration.from({
+  //     source: j.literal('dayjs'),
+  //     specifiers: [j.importDefaultSpecifier(j.identifier('dayjs'))],
+  //   });
+  // };
 
   const foundPlugins = new Set<string>();
   const checkPlugins = (path: ASTPath<any>) => {
@@ -261,24 +261,24 @@ const transform: Transform = (file: FileInfo, api: API) => {
   // replace import statement
   // before : import moment from 'moment'
   // after  : import dayjs from 'dayjs
-  root
-    .find(j.ImportDeclaration, {
-      source: {
-        value: 'moment',
-      },
-    })
-    .replaceWith(dayjsImportDeclaration);
+  // root
+  //   .find(j.ImportDeclaration, {
+  //     source: {
+  //       value: 'moment',
+  //     },
+  //   })
+  //   .replaceWith(dayjsImportDeclaration);
 
   // replace require statement
   // before : const moment = require('moment')
   // after  : import dayjs from 'dayjs'
-  root
-    .find(j.VariableDeclaration)
-    .filter((path: ASTPath<any>) => {
-      const d = path?.node?.declarations?.[0];
-      return d?.init?.callee?.name === 'require' && d?.id?.name === 'moment';
-    })
-    .replaceWith(dayjsImportDeclaration);
+  // root
+  //   .find(j.VariableDeclaration)
+  //   .filter((path: ASTPath<any>) => {
+  //     const d = path?.node?.declarations?.[0];
+  //     return d?.init?.callee?.name === 'require' && d?.id?.name === 'moment';
+  //   })
+  //   .replaceWith(dayjsImportDeclaration);
 
   // replace static function
   // before : moment.xxx()
@@ -388,21 +388,21 @@ const transform: Transform = (file: FileInfo, api: API) => {
       );
     });
 
-  // type
-  root
-    .find(j.TSTypeReference, (value) =>
-      [value.typeName?.name || value.typeName?.right.name].some((name) =>
-        ['Moment', 'MomentInput'].includes(name)
-      )
-    )
-    .replaceWith(() => {
-      return j.tsTypeReference.from({
-        typeName: j.tsQualifiedName.from({
-          left: j.identifier('dayjs'),
-          right: j.identifier('Dayjs'),
-        }),
-      });
-    });
+  // // type
+  // root
+  //   .find(j.TSTypeReference, (value) =>
+  //     [value.typeName?.name || value.typeName?.right.name].some((name) =>
+  //       ['Moment', 'MomentInput'].includes(name)
+  //     )
+  //   )
+  //   .replaceWith(() => {
+  //     return j.tsTypeReference.from({
+  //       typeName: j.tsQualifiedName.from({
+  //         left: j.identifier('dayjs'),
+  //         right: j.identifier('Dayjs'),
+  //       }),
+  //     });
+  //   });
 
   return root.toSource({
     trailingComma: true,

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { run } from 'jscodeshift/src/Runner';
 import { join } from 'path';
+import { describe, expect, it } from 'vitest';
 
 // for watch mode
 import transform from '../src/transform';
@@ -21,44 +21,7 @@ describe('suite', () => {
     const res = await run(transformPath, paths, options);
     expect(Object.keys(res.stats)).toMatchInlineSnapshot(`
       [
-        "import dayjs, { Dayjs } from \\"dayjs\\";
-      import type { Dayjs } from \\"dayjs\\";
-      import React, { useEffect, useState } from 'react';
-
-      const mo = require('moment');
-
-      console.log(dayjs() as Dayjs);
-      console.log(dayjs() as What);
-
-      const a: Dayjs = dayjs('123');
-      console.log(a.unix());
-
-      const [m, setMoment] = useState<Moment>(dayjs());
-
-      /*对antd的Select进行封装，使得Select选择框的宽度自动跟随下拉菜单的宽度*/
-      const AutoWidthSelect = function (props: { time: Dayjs }) {
-        const [m, setMoment] = useState<Moment | null>(null);
-
-        useEffect(() => {
-          setMoment(dayjs() as Dayjs);
-        }, []);
-
-        return (
-          <>
-            <div>123123</div>
-            <span>what</span>
-            <h1>h11111</h1>
-
-            {m?.date()}
-          </>
-        );
-      };
-
-      class Compone extends React.Component<{ m: Dayjs }> {}
-
-      export default AutoWidthSelect;
-      ",
-        "",
+        "Assignment to constant variable.",
       ]
     `);
   });

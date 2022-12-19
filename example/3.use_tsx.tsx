@@ -1,14 +1,44 @@
 import moment, { Moment as What } from 'moment';
 import type { Moment } from 'moment';
 import React, { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 
 const mo = require('moment');
+
+const b = moment();
+b.seconds();
+
+// -------------------
+// Moment.js
+moment().seconds();
+// => 49
+moment().hours();
+// => 19
+
+// Native
+new Date().getSeconds();
+// => 49
+new Date().getHours();
+// => 19
+
+// dayjs
+dayjs().second();
+// => 49
+dayjs().hour();
+// => 19
+
+// ------------------------------
+
+moment().weekday(-7); // 上个星期一
+moment().weekday(); // 上个星期一
+// ------------------------------
+
 
 console.log(moment() as Moment);
 console.log(moment() as What);
 
 const a: Moment = moment('123');
-console.log(a.unix());
+console.log(b.unix());
 
 const [m, setMoment] = useState<Moment>(moment());
 
