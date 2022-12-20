@@ -18,6 +18,7 @@
     "test": "vitest watch -u"
   },
   "dependencies": {
+    "date-fns": "^2.29.3",
     "dayjs": "^1.11.7",
     "jscodeshift": "^0.14.0",
     "moment": "^2.29.4",

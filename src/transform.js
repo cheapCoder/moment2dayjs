@@ -17,7 +17,7 @@ const transform = (file, { j, report, stats }, option) => {
     const root = j(file.source);
 
     // import for global
-    const globalExtend = '';
+    let globalExtend = new Set();
     const pageImport = [];
 
     const isImported = {
@@ -35,11 +35,15 @@ const transform = (file, { j, report, stats }, option) => {
       });
 
     root.find(j.CallExpression, { callee: { name: defaultImportName } }).replaceWith((path) => {
-      // String + Time Format
       if (path.node.arguments.length > 1) {
         // has second argument -> moment('2022-1-1', 'YYYY-MM-DD HH:mm')
-        globalExtend += `import customParseFormat from 'dayjs/plugin/customParseFormat';\n
-        dayjs.extend(customParseFormat);`;
+        globalExtend.add(
+          `import customParseFormat from 'dayjs/plugin/customParseFormat';\ndayjs.extend(customParseFormat);\n`
+        );
+      }
+      if (path.node.arguments.length > 2 && path.node.arguments[2].type === 'StringLiteral') {
+        // add locale plugin
+        globalExtend.add(`import 'dayjs/locale/${path.node.arguments[2].value}';\n`);
       }
       path.node.callee = j.identifier('dayjs');
       return path.node;
@@ -48,13 +52,8 @@ const transform = (file, { j, report, stats }, option) => {
     // ------------------------- replace locale --------------------------------------------
 
     // -------------------------[Get + Set] replace method --------------------------------------------
-    transformFuncCallName('milliseconds', 'millisecond');
-    transformFuncCallName('seconds', 'second');
-    transformFuncCallName('minutes', 'minute');
-    transformFuncCallName('hours', 'hour');
-    transformFuncCallName('dates', 'date');
-    transformFuncCallName('days', 'day');
-    transformFuncCallName('weeks', 'week');
+    const transMethods = ['milliseconds', 'seconds', 'minutes', 'hours', 'dates', 'days', 'weeks'];
+    transMethods.forEach((name) => transformFuncCallName(name, name.substring(0, name.length - 1)));
 
     // `weekday` need extend plugin
     const weekdayTime = root
@@ -62,7 +61,7 @@ const transform = (file, { j, report, stats }, option) => {
         callee: { type: 'MemberExpression', property: { name: 'weekday' } },
       })
       .size();
-    globalExtend += `\nimport weekday from 'dayjs/plugin/weekday';\ndayjs.extend(weekday)`;
+    globalExtend.add(`import weekday from 'dayjs/plugin/weekday';\ndayjs.extend(weekday)\n`);
 
     // `dayOfYear` need extend plugin
     const dayOfYearTime = root
@@ -70,21 +69,23 @@ const transform = (file, { j, report, stats }, option) => {
         callee: { type: 'MemberExpression', property: { name: 'weekday' } },
       })
       .size();
-    globalExtend += `\nimport dayOfYear from 'dayjs/plugin/dayOfYear';\ndayjs.extend(dayOfYear)`;
+    globalExtend.add(`import dayOfYear from 'dayjs/plugin/dayOfYear';\ndayjs.extend(dayOfYear)\n`);
 
-    stats(weekdayTime);
-    stats(dayOfYearTime);
+    // stats(weekdayTime);
+    // stats(dayOfYearTime);
 
     // -------------------------[Manipulate] replace method --------------------------------------------
 
     // ------------------------- replace import and require --------------------------------------------
     // import moment from 'moment'
     // after  : import dayjs from 'dayjs
+    const hasImportDayjs = root.find(j.ImportDeclaration, { source: { value: 'dayjs' } }).size();
+
     root.find(j.ImportDeclaration, { source: { value: 'moment' } }).replaceWith((path) => {
       // replace to `import ... from dayjs`
       path.node.source = j.literal('dayjs');
 
-      path.node.specifiers = path.node.specifiers.map((s) => {
+      path.node.specifiers = path.node.specifiers?.map((s) => {
         if (s.type === 'ImportDefaultSpecifier') {
           // replace moment constructor
           return j.importDefaultSpecifier(j.identifier('dayjs'));
@@ -94,7 +95,7 @@ const transform = (file, { j, report, stats }, option) => {
         }
       });
 
-      return path.node;
+      return hasImportDayjs ? '' : path.node;
     });
 
     // before : const moment = require('moment')
@@ -134,7 +135,7 @@ const transform = (file, { j, report, stats }, option) => {
     const res = root.toSource();
     stats(res);
 
-    stats(globalExtend);
+    stats([...globalExtend].join(''));
 
     return res;
   } catch (error) {
