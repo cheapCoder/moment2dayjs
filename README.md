@@ -11,8 +11,11 @@ A collection of codemods for migrating from [moment.js](https://momentjs.com/) t
 ## Usage
 
 
+## Config
 
-## Local Usage
+- `strict`: 
+  - true -> replace method only the caller is `moment(...)`, 
+  - false -> replace method as the method is belong to moment
 
 
 ## Feature

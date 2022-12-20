@@ -16,8 +16,12 @@ const transform = (file, { j, report, stats }, option) => {
 
     const root = j(file.source);
 
-    // import for global
-    let globalExtend = new Set();
+    /** @type{Set<string>} global import plugin  */
+    let extendPlugins = new Set();
+
+    /** @type{Set<string>} global import locale */
+    let extendLocale = new Set();
+
     const pageImport = [];
 
     const isImported = {
@@ -37,21 +41,17 @@ const transform = (file, { j, report, stats }, option) => {
     root.find(j.CallExpression, { callee: { name: defaultImportName } }).replaceWith((path) => {
       if (path.node.arguments.length > 1) {
         // has second argument -> moment('2022-1-1', 'YYYY-MM-DD HH:mm')
-        globalExtend.add(
-          `import customParseFormat from 'dayjs/plugin/customParseFormat';\ndayjs.extend(customParseFormat);\n`
-        );
+        extendPlugins.add('customParseFormat');
       }
       if (path.node.arguments.length > 2 && path.node.arguments[2].type === 'StringLiteral') {
         // add locale plugin
-        globalExtend.add(`import 'dayjs/locale/${path.node.arguments[2].value}';\n`);
+        extendLocale.add(path.node.arguments[2].value);
       }
       path.node.callee = j.identifier('dayjs');
       return path.node;
     });
 
-    // ------------------------- replace locale --------------------------------------------
-
-    // -------------------------[Get + Set] replace method --------------------------------------------
+    // ------------------------- replace method --------------------------------------------
     const transMethods = ['milliseconds', 'seconds', 'minutes', 'hours', 'dates', 'days', 'weeks'];
     transMethods.forEach((name) => transformFuncCallName(name, name.substring(0, name.length - 1)));
 
@@ -61,7 +61,7 @@ const transform = (file, { j, report, stats }, option) => {
         callee: { type: 'MemberExpression', property: { name: 'weekday' } },
       })
       .size();
-    globalExtend.add(`import weekday from 'dayjs/plugin/weekday';\ndayjs.extend(weekday)\n`);
+    extendPlugins.add('weekday');
 
     // `dayOfYear` need extend plugin
     const dayOfYearTime = root
@@ -69,7 +69,7 @@ const transform = (file, { j, report, stats }, option) => {
         callee: { type: 'MemberExpression', property: { name: 'weekday' } },
       })
       .size();
-    globalExtend.add(`import dayOfYear from 'dayjs/plugin/dayOfYear';\ndayjs.extend(dayOfYear)\n`);
+    extendPlugins.add('dayOfYear');
 
     // stats(weekdayTime);
     // stats(dayOfYearTime);
@@ -130,12 +130,28 @@ const transform = (file, { j, report, stats }, option) => {
         typeName: { name: 'Moment' },
       })
       .replaceWith(() => j.tsTypeReference(j.identifier('Dayjs')));
+
+    // // type
+    // root
+    //   .find(j.TSTypeReference, (value) =>
+    //     [value.typeName?.name || value.typeName?.right.name].some((name) =>
+    //       ['Moment', 'MomentInput'].includes(name)
+    //     )
+    //   )
+    //   .replaceWith(() => {
+    //     return j.tsTypeReference.from({
+    //       typeName: j.tsQualifiedName.from({
+    //         left: j.identifier('dayjs'),
+    //         right: j.identifier('Dayjs'),
+    //       }),
+    //     });
+    //   });
     // -----------------------------------------------------------------------------------------
 
     const res = root.toSource();
     stats(res);
 
-    stats([...globalExtend].join(''));
+    stats([...extendPlugins].join('---'));
 
     return res;
   } catch (error) {

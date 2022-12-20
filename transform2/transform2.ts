@@ -283,22 +283,22 @@ const transform: Transform = (file: FileInfo, api: API) => {
   // replace static function
   // before : moment.xxx()
   // after  : dayjs.xxx()
-  root
-    .find(j.CallExpression, {
-      callee: {
-        object: { name: 'moment' },
-      },
-    })
-    .replaceWith((path: ASTPath<any>) => {
-      checkPlugins(path);
-      return j.callExpression.from({
-        ...path.node,
-        callee: j.memberExpression.from({
-          ...path.node.callee,
-          object: j.identifier('dayjs'),
-        }),
-      });
-    });
+  // root
+  //   .find(j.CallExpression, {
+  //     callee: {
+  //       object: { name: 'moment' },
+  //     },
+  //   })
+  //   .replaceWith((path: ASTPath<any>) => {
+  //     checkPlugins(path);
+  //     return j.callExpression.from({
+  //       ...path.node,
+  //       callee: j.memberExpression.from({
+  //         ...path.node.callee,
+  //         object: j.identifier('dayjs'),
+  //       }),
+  //     });
+  //   });
 
   // replace function and arguments
   // before : moment().xxx(1, 'days') / moment().days()
@@ -352,41 +352,41 @@ const transform: Transform = (file: FileInfo, api: API) => {
     });
 
   // plugins
-  const dImports = root.find(j.ImportDeclaration, {
-    source: {
-      value: 'dayjs',
-    },
-  });
-  const dImport = dImports.nodes().length > 0 && dImports.at(-1).get();
-  Array.from(foundPlugins)
-    .sort()
-    .reverse()
-    .forEach((p) => {
-      if (!dImport) {
-        return;
-      }
-      dImport.insertAfter(
-        j.expressionStatement.from({
-          expression: j.callExpression.from({
-            callee: j.memberExpression.from({
-              object: j.identifier('dayjs'),
-              property: j.identifier('extend'),
-            }),
-            arguments: [j.identifier(p)],
-          }),
-        })
-      );
-      dImport.insertAfter(
-        j.importDeclaration.from({
-          source: j.literal(`dayjs/plugin/${p}`),
-          specifiers: [
-            j.importDefaultSpecifier.from({
-              local: j.identifier(p),
-            }),
-          ],
-        })
-      );
-    });
+  // const dImports = root.find(j.ImportDeclaration, {
+  //   source: {
+  //     value: 'dayjs',
+  //   },
+  // });
+  // const dImport = dImports.nodes().length > 0 && dImports.at(-1).get();
+  // Array.from(foundPlugins)
+  //   .sort()
+  //   .reverse()
+  //   .forEach((p) => {
+  //     if (!dImport) {
+  //       return;
+  //     }
+  //     dImport.insertAfter(
+  //       j.expressionStatement.from({
+  //         expression: j.callExpression.from({
+  //           callee: j.memberExpression.from({
+  //             object: j.identifier('dayjs'),
+  //             property: j.identifier('extend'),
+  //           }),
+  //           arguments: [j.identifier(p)],
+  //         }),
+  //       })
+  //     );
+  //     dImport.insertAfter(
+  //       j.importDeclaration.from({
+  //         source: j.literal(`dayjs/plugin/${p}`),
+  //         specifiers: [
+  //           j.importDefaultSpecifier.from({
+  //             local: j.identifier(p),
+  //           }),
+  //         ],
+  //       })
+  //     );
+  //   });
 
   // // type
   // root
