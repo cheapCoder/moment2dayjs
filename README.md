@@ -32,6 +32,7 @@ A collection of codemods for migrating from [moment.js](https://momentjs.com/) t
 
 - [All listed in `You-Dont-Need-Momentjs`](https://github.com/you-dont-need/You-Dont-Need-Momentjs#parse)
 - import / require
+- mutable to immutable
 - api transform
   - `moment()` -> `dayjs()`
   - `moment.isMoment()` -> `dayjs.isDayjs`
