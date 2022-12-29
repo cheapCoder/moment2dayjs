@@ -1,19 +1,24 @@
 import { Transform } from 'jscodeshift';
 
 import { methodTransform, staticTransform } from './config';
+import global from './global';
 
 const transform: Transform = (file, { j, report, stats }, option) => {
+  // report(JSON.stringify(option));
+
   try {
     const root = j(file.source);
 
     // get context
     const context = {
       importName: undefined,
+      importTypeName: undefined,
       /** global import plugin  */
       extendPlugins: [],
       /** global import locale */
       extendLocale: new Set(),
     };
+
     // get default import moment's name
     root
       .find(j.ImportDeclaration, { source: { value: 'moment' } })
@@ -51,9 +56,9 @@ const transform: Transform = (file, { j, report, stats }, option) => {
       root
         .find(j.CallExpression, (node) => conf.name.test(node.callee?.property?.name))
         .replaceWith((path) => {
-          // if (conf.transform) {
-          //   path = conf.transform(path, context);
-          // }
+          if (conf.transform) {
+            path = conf.transform(path, context, { stats, report });
+          }
           if (conf.plugin) {
             context.extendPlugins.push(...conf.plugin);
           }
@@ -157,35 +162,14 @@ const transform: Transform = (file, { j, report, stats }, option) => {
       })
       .replaceWith(() => j.tsTypeReference(j.identifier('Dayjs')));
 
-    // // type
-    // root
-    //   .find(j.TSTypeReference, (value) =>
-    //     [value.typeName?.name || value.typeName?.right.name].some((name) =>
-    //       ['Moment', 'MomentInput'].includes(name)
-    //     )
-    //   )
-    //   .replaceWith(() => {
-    //     return j.tsTypeReference.from({
-    //       typeName: j.tsQualifiedName.from({
-    //         left: j.identifier('dayjs'),
-    //         right: j.identifier('Dayjs'),
-    //       }),
-    //     });
-    //   });
     // -----------------------------------------------------------------------------------------
 
     const res = root.toSource();
-    stats(res);
 
     const plugins = [...new Set(context.extendPlugins)];
-    const globalImport =
-      plugins.map((name) => `import ${name} from 'dayjs/plugin/${name}';`).join('\n') +
-      '\n\n' +
-      plugins.map((name) => `dayjs.extend(${name})`).join('\n') +
-      '\n';
 
+    globalThis['plugins'] = [...(globalThis['plugins'] || []), '123123123'];
     stats(plugins.join('\n'));
-    // stats(process.cwd());
     return res;
   } catch (error) {
     stats(error.message);

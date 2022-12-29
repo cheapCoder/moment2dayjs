@@ -11,6 +11,8 @@
     "name": "cheapCoder",
     "email": "lihengnie@gmail.com"
   },
+  "main": "./src/transform.ts",
+  "bin": "./out/bin/cli.js",
   "repository": "https://github.com/cheapCoder/moment2dayjs",
   "license": "MIT",
   "scripts": {
@@ -18,11 +20,13 @@
     "test": "vitest watch -u"
   },
   "dependencies": {
+    "chalk": "^5.2.0",
     "date-fns": "^2.29.3",
     "dayjs": "^1.11.7",
     "jscodeshift": "^0.14.0",
     "moment": "^2.29.4",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "yargs": "^17.6.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.5",

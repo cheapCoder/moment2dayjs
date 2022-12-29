@@ -16,7 +16,7 @@ export const methodTransform: {
   name: RegExp;
   rename?: string;
   plugin?: string[];
-  transform?: (path: ASTPath<CallExpression>, context: any) => any;
+  transform?: (path: ASTPath<CallExpression>, context: any, tools: any) => any;
 }[] = [
   // -------------------------------- Get + Set ---------------------------
   { name: /^milliseconds$/, rename: 'millisecond' },
@@ -25,12 +25,7 @@ export const methodTransform: {
   { name: /^hours$/, rename: 'hour' },
   { name: /^dates$/, rename: 'date' },
   { name: /^days$/, rename: 'day' },
-  {
-    name: /^weekday$/,
-    plugin: ['weekday'],
-    // TODO:
-    // argument: [{alert:{when: 'string'}}]
-  },
+  { name: /^weekday$/, plugin: ['weekday'] },
   { name: /^(isoWeekday|isoWeekYear)$/, plugin: ['isoWeek'] },
   { name: /^dayOfYear$/, plugin: ['dayOfYear'] },
   {
@@ -67,26 +62,17 @@ export const methodTransform: {
     // when
     // argument: [{ when: 'object...' }],
   },
-  // deprecated api
+  // -------------------------------- Manipulate ---------------------------
   // {
-  //   name: /^max|min$/,
-  //   plugin: ['minMax'],
-  //   transform: (path) => {
+  //   name: /^add|subtract$/,
+  //   // TODO:
+  //   transform: (path, context) => {
+  //     // 对象参数转为链式调用
+  //     // 'string, number'转为'number, string'
+
   //     return path;
   //   },
   // },
-
-  // -------------------------------- Manipulate ---------------------------
-  {
-    name: /^add|subtract$/,
-    // TODO:
-    transform: (path, context) => {
-      // 对象参数转为链式调用
-      // 'string, number'转为'number, string'
-
-      return path;
-    },
-  },
   {
     name: /^startOf|endOf$/,
     transform: (path, context) => {
@@ -100,7 +86,16 @@ export const methodTransform: {
     name: /^utc$/,
     plugin: ['utc'],
   },
-
+  {
+    name: /^utcOffset$/,
+    transform: (path, context, { stats, report }) => {
+      // need utc plugin if has argument
+      if (path.node.arguments.length > 0) {
+        context.extendPlugins.push('utc');
+      }
+      return path;
+    },
+  },
   // -------------------------------- Display ---------------------------
   {
     name: /^(fromNow|from|toNow|to)$/,
