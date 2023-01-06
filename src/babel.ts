@@ -8,7 +8,8 @@ import { staticTransform } from './config';
 
 const root = process.cwd();
 
-const path = resolve(root, './example/3.use_tsx.tsx');
+// const path = resolve(root, './example/3.use_tsx.tsx');
+const path = resolve(root, './example/4.static.ts');
 
 const code = readFileSync(path, { encoding: 'utf-8' });
 // console.log(code);
@@ -57,7 +58,7 @@ const context = {
   importName: 'moment',
   importTypeName: undefined,
   /** global import plugin  */
-  extendPlugins: [],
+  plugin: [],
   /** global import locale */
   extendLocale: new Set(),
 };
@@ -76,13 +77,29 @@ traverse(ast, {
   },
 });
 
-if (!momentPath) process.exit();
+// if (!momentPath) process.exit();
 
 // ------------------------- replace static method --------------------------------------------
 
-momentPath.scope.rename("moment", 'mo')
-
-console.log(momentPath.scope.bindings['moment']);
+const instancePathList = [];
+momentPath.scope.bindings['moment'].referencePaths.forEach((p) => {
+  if (p.parent.type === 'MemberExpression') {
+    // static method
+    const conf = staticTransform[p.parent.property['name']];
+    if (conf) {
+      if (conf.plugin) {
+        context.plugin.push(...conf.plugin);
+      }
+      if (conf.rename) {
+        p.parent.property['name'] = conf.rename;
+      }
+    }
+  } else if (p.parent.type === 'CallExpression') {
+    // record all instance
+    // instancePathList.push()
+    // instance method
+  }
+});
 
 // staticTransform.forEach((conf) => {
 //   root
@@ -107,8 +124,10 @@ console.log(momentPath.scope.bindings['moment']);
 //     });
 // });
 
-console.log(context);
+momentPath.scope.rename('moment', 'dayjs');
 
 const output = generate(ast);
 
- console.log(output);
+console.log(context);
+console.log('--------------------------');
+console.log(output);

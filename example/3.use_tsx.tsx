@@ -8,6 +8,8 @@ const mo = require('moment');
 const b = moment();
 b.seconds();
 
+moment.duration();
+
 // -------------------
 // Moment.js
 moment().seconds();

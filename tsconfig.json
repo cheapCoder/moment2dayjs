@@ -96,7 +96,8 @@
   },
   "include": [
     "./src",
-    "./bin"
+    "./bin",
+    "./example"
   ],
   "ts-node": {
     "swc": true

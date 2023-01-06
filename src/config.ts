@@ -1,16 +1,20 @@
 import { ASTPath, CallExpression } from 'jscodeshift';
 
-export const staticTransform = [
-  {
-    name: /^(min|max)$/,
+export const staticTransform = {
+  min: {
     plugin: ['minMax'],
   },
-  { name: /^utc$/, plugin: ['utc'] },
-  {
-    name: /^isMoment$/,
+  max: {
+    plugin: ['minMax'],
+  },
+  utc: {
+    plugin: ['utc'],
+  },
+  isMoment: {
     rename: 'isDayjs',
   },
-];
+  // unix: no need change
+};
 
 export const methodTransform: {
   name: RegExp;
