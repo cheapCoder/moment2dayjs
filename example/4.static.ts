@@ -1,5 +1,6 @@
-import moment from "moment";
+const moment = require('moment')
 
+const {Moment} = require('moment')
 var duration = moment.duration({'days' : 1});
 
 var a = moment.utc([2011, 0, 1, 8]);

@@ -1,7 +1,7 @@
 import { parse, ParserOptions } from '@babel/parser';
 import traverse, { NodePath } from '@babel/traverse';
 import generate from '@babel/generator';
-import t from '@babel/types';
+import * as t from '@babel/types';
 import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import { staticTransform } from './config';
@@ -63,14 +63,45 @@ const context = {
   extendLocale: new Set(),
 };
 
-let momentPath: NodePath<t.ImportDefaultSpecifier>;
+let momentPath: NodePath<t.ImportDefaultSpecifier | t.VariableDeclarator>;
 
 // get default import moment's name
 traverse(ast, {
   ImportDefaultSpecifier(path) {
     if (path.parent['source']['value'] === 'moment') {
       context.importName = path.node.local.name;
+      momentPath = path;
+      path.stop();
+    }
+  },
+  VariableDeclarator(path) {
+    console.log(
+      t.shallowEqual(path.node, {
+        type: "VariableDeclarator",
 
+
+
+        
+        id: { type: 'Identifier' },
+        // init: {
+          // type: 'CallExpression',
+          // callee: { type: 'Identifier', name: 'require' },
+          // arguments: [{ type: 'Literal', value: 'moment' }],
+        // },
+      })
+    );
+
+    if (
+      t.shallowEqual(path.node, {
+        id: { type: 'Identifier' },
+        init: {
+          type: 'CallExpression',
+          callee: { type: 'Identifier', name: 'require' },
+          arguments: [{ type: 'Literal', value: 'moment' }],
+        },
+      })
+    ) {
+      context.importName = path.node.id['name'];
       momentPath = path;
       path.stop();
     }
