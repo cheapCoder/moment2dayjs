@@ -1,71 +1,81 @@
-import { ASTPath, CallExpression } from 'jscodeshift';
+const mapConfig = (config: Record<string, Record<string, any>>) => {
+  return Object.keys(config).reduce((copy, key) => {
+    // convert `xxx|xxx` to ['xxx', 'xxx']
+    if (config[key].plugin) {
+      config[key].plugin = config[key].plugin.split('|');
+    }
 
-export const staticTransform = {
-  min: {
-    plugin: ['minMax'],
-  },
-  max: {
-    plugin: ['minMax'],
+    // convert `max|min: xxx` to `max: xxx, min: xxx`
+    key.split('|').forEach((part) => {
+      if (config[key]) {
+        copy[part] = { ...config[part], ...config[key] };
+      } else {
+        copy[part] = config[key];
+      }
+    });
+    return copy;
+  }, {});
+};
+
+export const staticTransform = mapConfig({
+  'max|min': {
+    plugin: 'minMax',
   },
   utc: {
-    plugin: ['utc'],
+    plugin: 'utc',
   },
   isMoment: {
     rename: 'isDayjs',
   },
   // unix: no need change
-};
+});
 
-export const methodTransform: {
-  name: RegExp;
-  rename?: string;
-  plugin?: string[];
-  transform?: (path: ASTPath<CallExpression>, context: any, tools: any) => any;
-}[] = [
+// : {
+//   name: RegExp;
+//   rename?: string;
+//   plugin?: string[];
+//   transform?: (path: ASTPath<CallExpression>, context: any, tools: any) => any;
+// }[]
+export const methodTransform = mapConfig({
   // -------------------------------- Get + Set ---------------------------
-  { name: /^milliseconds$/, rename: 'millisecond' },
-  { name: /^seconds$/, rename: 'second' },
-  { name: /^minutes$/, rename: 'minute' },
-  { name: /^hours$/, rename: 'hour' },
-  { name: /^dates$/, rename: 'date' },
-  { name: /^days$/, rename: 'day' },
-  { name: /^weekday$/, plugin: ['weekday'] },
-  { name: /^(isoWeekday|isoWeekYear)$/, plugin: ['isoWeek'] },
-  { name: /^dayOfYear$/, plugin: ['dayOfYear'] },
-  {
-    name: /^(weeks?|weeksInYear)$/,
-    plugin: ['weekOfYear'],
+  milliseconds: { rename: 'millisecond' },
+  seconds: { rename: 'second' },
+  minutes: { rename: 'minute' },
+  hours: { rename: 'hour' },
+  dates: { rename: 'date' },
+  days: { rename: 'day' },
+  'weekday|weekdays': { plugin: 'weekday' },
+  'isoWeekday|isoWeekYear': { plugin: 'isoWeek' },
+  dayOfYear: { plugin: 'dayOfYear' },
+  'week|weeks': {
+    plugin: 'weekOfYear',
     rename: 'week',
   },
-  {
-    name: /^(isoWeeks?)$/,
-    plugin: ['isoWeek'],
+  'isoWeek|isoWeeks': {
+    plugin: 'isoWeek',
     rename: 'isoWeek',
   },
-  {
-    name: /^(isoWeeksInYear)$/,
-    plugin: ['isoWeeksInYear', 'isLeapYear'],
+  isoWeeksInYear: {
+    plugin: 'isoWeeksInYear|isLeapYear',
   },
-  { name: /^months$/, rename: 'month' },
-  {
-    name: /^quarters?$/,
-    plugin: ['quarterOfYear'],
+  months: { rename: 'month' },
+  'quarter|quarters': {
+    plugin: 'quarterOfYear',
     rename: 'quarter',
   },
-  { name: /^years$/, rename: 'year' },
-  {
-    name: /^weekYear$/,
-    plugin: ['weekYear', 'weekOfYear'],
+  years: { rename: 'year' },
+  weekYear: {
+    plugin: 'weekYear|weekOfYear',
   },
   // {
   //   name: /^get$/,
   //   // when
   // },
-  {
-    name: /^set$/,
-    // when
-    // argument: [{ when: 'object...' }],
-  },
+  // {
+  // name: /^set$/,
+  // when
+  // argument: [{ when: 'object...' }],
+  // },
   // -------------------------------- Manipulate ---------------------------
   // {
   //   name: /^add|subtract$/,
@@ -77,8 +87,7 @@ export const methodTransform: {
   //     return path;
   //   },
   // },
-  {
-    name: /^startOf|endOf$/,
+  'startOf|endOf': {
     transform: (path, context) => {
       // quarter -> quarterOfYear
       // isoWeek -> isoWeek
@@ -86,12 +95,10 @@ export const methodTransform: {
       return path;
     },
   },
-  {
-    name: /^utc$/,
-    plugin: ['utc'],
+  utc: {
+    plugin: 'utc',
   },
-  {
-    name: /^utcOffset$/,
+  utcOffset: {
     transform: (path, context, { stats, report }) => {
       // need utc plugin if has argument
       if (path.node.arguments.length > 0) {
@@ -101,38 +108,30 @@ export const methodTransform: {
     },
   },
   // -------------------------------- Display ---------------------------
-  {
-    name: /^(fromNow|from|toNow|to)$/,
-    plugin: ['relativeTime'],
+  'fromNow|from|toNow|to': {
+    plugin: 'relativeTime',
   },
-  {
-    name: /^calendar$/,
-    plugin: ['calendar'],
+  calendar: {
+    plugin: 'calendar',
   },
-  {
-    name: /^toArray$/,
-    plugin: ['toArray'],
+  toArray: {
+    plugin: 'toArray',
   },
-  {
-    name: /^toObject$/,
-    plugin: ['toObject'],
+  toObject: {
+    plugin: 'toObject',
   },
   // -------------------------------- Query ---------------------------
-  {
-    name: /^isSameOrBefore$/,
-    plugin: ['isSameOrBefore'],
+  isSameOrBefore: {
+    plugin: 'isSameOrBefore',
   },
-  {
-    name: /^isSameOrAfter$/,
-    plugin: ['isSameOrAfter'],
+  isSameOrAfter: {
+    plugin: 'isSameOrAfter',
   },
-  {
-    name: /^isBetween$/,
-    plugin: ['isBetween'],
+  isBetween: {
+    plugin: 'isBetween',
   },
-  {
-    name: /^isLeapYear$/,
-    plugin: ['isLeapYear'],
+  isLeapYear: {
+    plugin: 'isLeapYear',
   },
 
   // {
@@ -149,4 +148,4 @@ export const methodTransform: {
   //     return path;
   //   },
   // },
-];
+});

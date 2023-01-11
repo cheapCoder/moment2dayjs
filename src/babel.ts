@@ -9,7 +9,8 @@ import { staticTransform } from './config';
 const root = process.cwd();
 
 // const path = resolve(root, './example/3.use_tsx.tsx');
-const path = resolve(root, './example/4.static.ts');
+// const path = resolve(root, './example/4.static.ts');
+const path = resolve(root, './example/3.use_tsx.tsx');
 
 const code = readFileSync(path, { encoding: 'utf-8' });
 // console.log(code);
@@ -55,6 +56,7 @@ try {
 
 // get context
 const context = {
+  types: [],
   importName: 'moment',
   importTypeName: undefined,
   /** global import plugin  */
@@ -77,16 +79,13 @@ traverse(ast, {
   VariableDeclarator(path) {
     console.log(
       t.shallowEqual(path.node, {
-        type: "VariableDeclarator",
+        type: 'VariableDeclarator',
 
-
-
-        
         id: { type: 'Identifier' },
         // init: {
-          // type: 'CallExpression',
-          // callee: { type: 'Identifier', name: 'require' },
-          // arguments: [{ type: 'Literal', value: 'moment' }],
+        // type: 'CallExpression',
+        // callee: { type: 'Identifier', name: 'require' },
+        // arguments: [{ type: 'Literal', value: 'moment' }],
         // },
       })
     );
@@ -154,6 +153,31 @@ momentPath.scope.bindings['moment'].referencePaths.forEach((p) => {
 //       return path.node;
 //     });
 // });
+
+// ------------------------- replace Moment type --------------------------------------------
+// get Type name  from `import` or `import type`
+// let typeName = 'Moment';
+// root
+//   .find(j.ImportDeclaration, { source: { value: 'moment' } })
+//   ?.find(j.ImportDefaultSpecifier)
+//   .forEach((path) => {
+//     context.importName = path.node.local.name;
+//   });
+
+traverse(ast, {
+  TSTypeReference(path) {
+    if (path.node.typeName['name'] === 'Moment') {
+      path.node.typeName['name'] = 'Dayjs';
+
+      // replace import type
+      // traverse(path.node,{ImportSpecifier(path) {
+
+      // }})
+    }
+  },
+});
+
+// -----------------------------------------------------------------------------------------
 
 momentPath.scope.rename('moment', 'dayjs');
 
