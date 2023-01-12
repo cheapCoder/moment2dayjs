@@ -76,20 +76,8 @@ traverse(ast, {
       path.stop();
     }
   },
+
   VariableDeclarator(path) {
-    console.log(
-      t.shallowEqual(path.node, {
-        type: 'VariableDeclarator',
-
-        id: { type: 'Identifier' },
-        // init: {
-        // type: 'CallExpression',
-        // callee: { type: 'Identifier', name: 'require' },
-        // arguments: [{ type: 'Literal', value: 'moment' }],
-        // },
-      })
-    );
-
     if (
       t.shallowEqual(path.node, {
         id: { type: 'Identifier' },
@@ -131,38 +119,103 @@ momentPath.scope.bindings['moment'].referencePaths.forEach((p) => {
   }
 });
 
-// staticTransform.forEach((conf) => {
+// ------------------------- replace instance method --------------------------------------------
+// methodTransform.forEach((conf) => {
 //   root
-//     .find(
-//       j.CallExpression,
-//       (node) =>
-//         node.callee.type === 'MemberExpression' &&
-//         node.callee.object.type === 'Identifier' &&
-//         node.callee.object.name === context.importName &&
-//         node.callee.property.type === 'Identifier' &&
-//         conf.name.test(node.callee.property.name)
-//     )
+//     .find(j.CallExpression, (node) => conf.name.test(node.callee?.property?.name))
 //     .replaceWith((path) => {
+//       if (conf.transform) {
+//         path = conf.transform(path, context, { stats, report });
+//       }
 //       if (conf.plugin) {
 //         context.extendPlugins.push(...conf.plugin);
 //       }
 //       if (conf.rename) {
-//         path.node.callee['property'] = j.identifier(conf.rename);
+//         path.node.callee.property = j.identifier(conf.rename);
 //       }
-//       path.node.callee['object'] = j.identifier('dayjs');
+
 //       return path.node;
 //     });
 // });
 
-// ------------------------- replace Moment type --------------------------------------------
-// get Type name  from `import` or `import type`
-// let typeName = 'Moment';
-// root
-//   .find(j.ImportDeclaration, { source: { value: 'moment' } })
-//   ?.find(j.ImportDefaultSpecifier)
-//   .forEach((path) => {
-//     context.importName = path.node.local.name;
+// ------------------------- replace `moment()` --------------------------------------------
+// if (context.importName) {
+//   // `moment()`
+//   root.find(j.CallExpression, { callee: { name: context.importName } }).replaceWith((path) => {
+//     // transform array to ...string
+//     // TODO:
+//     // transform object to ...string
+//     // TODO:
+
+//     if (path.node.arguments.length > 1) {
+//       // has second argument -> moment('2022-1-1', 'YYYY-MM-DD HH:mm')
+//       context.extendPlugins.push('customParseFormat');
+//     }
+//     if (path.node.arguments.length > 2 && path.node.arguments[2].type === 'StringLiteral') {
+//       // add locale plugin
+//       context.extendLocale.add(path.node.arguments[2].value);
+//     }
+//     path.node.callee = j.identifier('dayjs');
+//     return path.node;
 //   });
+
+//   // `moment.xxx`
+//   // root
+//   //   .find(j.CallExpression, {
+//   //     callee: { type: 'MemberExpression', object: { name: context.importName } },
+//   //   })
+//   //   .replaceWith((path) => {
+//   //     path.node.callee.object = j.identifier('dayjs');
+//   //     return path.node;
+//   //   });
+// }
+
+// ------------------------- replace import and require --------------------------------------------
+traverse(ast, {
+  // import
+  ImportDeclaration(path) {
+    if (path.node.source.value === 'moment') {
+      path.node.source.value = 'Dayjs';
+
+      path.node.specifiers?.forEach((s) => {
+        if (s.type === 'ImportDefaultSpecifier') {
+          // replace moment constructor
+          s.local.name = 'dayjs';
+        } else if (s.type === 'ImportSpecifier' && s.imported['name'] === 'Moment') {
+          // replace Moment type
+          s.imported['name'] = 'Dayjs';
+        }
+      });
+    }
+  },
+
+  VariableDeclaration(path) {
+    
+  },
+});
+
+// require
+root
+  .find(j.VariableDeclaration, {
+    type: 'VariableDeclaration',
+    declarations: [
+      {
+        init: {
+          type: 'CallExpression',
+          callee: { type: 'Identifier', name: 'require' },
+          arguments: [{ value: 'moment' }],
+        },
+      },
+    ],
+  })
+  .replaceWith((path) => {
+    if (path.node.declarations?.[0]['init'].arguments[0]) {
+      path.node.declarations[0]['init'].arguments[0] = j.stringLiteral('dayjs');
+    }
+    return path.node;
+  });
+
+// ------------------------- replace Moment type --------------------------------------------
 
 traverse(ast, {
   TSTypeReference(path) {

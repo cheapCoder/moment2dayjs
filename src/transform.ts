@@ -138,7 +138,6 @@ const transform: Transform = (file, { j, report, stats }, option) => {
         ],
       })
       .replaceWith((path) => {
-        path.scope
         if (path.node.declarations?.[0]['init'].arguments[0]) {
           path.node.declarations[0]['init'].arguments[0] = j.stringLiteral('dayjs');
         }
