@@ -1,3 +1,5 @@
+import { ParserOptions } from '@babel/parser';
+
 const mapConfig = (config: Record<string, Record<string, any>>) => {
   return Object.keys(config).reduce((copy, key) => {
     // convert `xxx|xxx` to ['xxx', 'xxx']
@@ -149,3 +151,51 @@ export const methodTransform = mapConfig({
   //   },
   // },
 });
+
+export const babelConfig: ParserOptions = {
+  sourceType: 'module',
+  allowImportExportEverywhere: true,
+  allowReturnOutsideFunction: true,
+  startLine: 1,
+  tokens: false,
+  plugins: [
+    'jsx',
+    'asyncGenerators',
+    'bigInt',
+    'classPrivateMethods',
+    'classPrivateProperties',
+    'classProperties',
+    'decorators-legacy',
+    'doExpressions',
+    'dynamicImport',
+    'exportDefaultFrom',
+    'exportNamespaceFrom',
+    'functionBind',
+    'functionSent',
+    'importMeta',
+    'nullishCoalescingOperator',
+    'numericSeparator',
+    'objectRestSpread',
+    'optionalCatchBinding',
+    'optionalChaining',
+    ['pipelineOperator', { proposal: 'minimal' }],
+    'throwExpressions',
+    'typescript',
+  ],
+};
+
+// check if the value exist in expected equal the value in actual
+export const structureEqual = (actual: any, expected: any) => {
+  try {
+    if (Array.isArray(expected)) {
+      return expected.every((v, i) => structureEqual(actual[i], v));
+    }
+    if (typeof expected === 'object' && expected !== null) {
+      const keys = Object.keys(expected);
+      return keys.every((k) => structureEqual(actual[k], expected[k]));
+    }
+    return actual === expected;
+  } catch (error) {
+    return false;
+  }
+};

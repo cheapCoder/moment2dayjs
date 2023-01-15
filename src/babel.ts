@@ -1,10 +1,10 @@
-import { parse, ParserOptions } from '@babel/parser';
-import traverse, { NodePath } from '@babel/traverse';
 import generate from '@babel/generator';
+import { parse } from '@babel/parser';
+import traverse, { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
-import { resolve } from 'path';
 import { readFileSync } from 'fs';
-import { staticTransform } from './config';
+import { resolve } from 'path';
+import { babelConfig, staticTransform, structureEqual } from './config';
 
 const root = process.cwd();
 
@@ -15,41 +15,9 @@ const path = resolve(root, './example/3.use_tsx.tsx');
 const code = readFileSync(path, { encoding: 'utf-8' });
 // console.log(code);
 
-const option: ParserOptions = {
-  sourceType: 'module',
-  allowImportExportEverywhere: true,
-  allowReturnOutsideFunction: true,
-  startLine: 1,
-  tokens: true,
-  plugins: [
-    'jsx',
-    'asyncGenerators',
-    'bigInt',
-    'classPrivateMethods',
-    'classPrivateProperties',
-    'classProperties',
-    'decorators-legacy',
-    'doExpressions',
-    'dynamicImport',
-    'exportDefaultFrom',
-    'exportNamespaceFrom',
-    'functionBind',
-    'functionSent',
-    'importMeta',
-    'nullishCoalescingOperator',
-    'numericSeparator',
-    'objectRestSpread',
-    'optionalCatchBinding',
-    'optionalChaining',
-    ['pipelineOperator', { proposal: 'minimal' }],
-    'throwExpressions',
-    'typescript',
-  ],
-};
-
 let ast;
 try {
-  ast = parse(code, option);
+  ast = parse(code, babelConfig);
 } catch (error) {
   console.log(`parse fail: ${path}`);
 }
@@ -57,50 +25,59 @@ try {
 // get context
 const context = {
   types: [],
-  importName: 'moment',
-  importTypeName: undefined,
+  // importName: 'moment',
+  // importTypeName: 'Moment',
   /** global import plugin  */
   plugin: [],
   /** global import locale */
   extendLocale: new Set(),
 };
 
-let momentPath: NodePath<t.ImportDefaultSpecifier | t.VariableDeclarator>;
+let importPath: NodePath<t.ImportDefaultSpecifier | t.VariableDeclarator>;
+let importTypePath: NodePath<t.ImportSpecifier | t.VariableDeclarator>;
 
 // get default import moment's name
 traverse(ast, {
-  ImportDefaultSpecifier(path) {
-    if (path.parent['source']['value'] === 'moment') {
-      context.importName = path.node.local.name;
-      momentPath = path;
-      path.stop();
+  ImportDeclaration(path) {
+    if (path.node.source.value === 'moment') {
+      path.get('specifiers').forEach((p) => {
+        if (p.isImportDefaultSpecifier()) {
+          // import moment name
+          // context.importName = p.node.local.name;
+          importPath = p;
+        } else if (
+          structureEqual(p.node, { type: 'ImportSpecifier', imported: { name: 'Moment' } })
+        ) {
+          // ts type name
+          // context.importTypeName = p.node.local.name;
+          importTypePath = p as NodePath<t.ImportSpecifier>;
+        }
+      });
+
+      importPath && importTypePath && path.stop();
     }
   },
 
-  VariableDeclarator(path) {
-    if (
-      t.shallowEqual(path.node, {
-        id: { type: 'Identifier' },
-        init: {
-          type: 'CallExpression',
-          callee: { type: 'Identifier', name: 'require' },
-          arguments: [{ type: 'Literal', value: 'moment' }],
-        },
-      })
-    ) {
-      context.importName = path.node.id['name'];
-      momentPath = path;
-      path.stop();
-    }
-  },
+  // VariableDeclarator(path) {
+  //   if (
+  //     structureEqual(path.node, {
+  //       init: {
+  //         type: 'CallExpression',
+  //         callee: { type: 'Identifier', name: 'require' },
+  //         arguments: [{ value: 'moment' }],
+  //       },
+  //     })
+  //   ) {
+  //     // context.importName = path.node.id['name'];
+  //     importPath = path;
+  //     path.stop();
+  //   }
+  // },
 });
 
-// if (!momentPath) process.exit();
-
 // ------------------------- replace static method --------------------------------------------
-
 const instancePathList = [];
-momentPath.scope.bindings['moment'].referencePaths.forEach((p) => {
+importPath?.scope.bindings['moment']?.referencePaths.forEach((p) => {
   if (p.parent.type === 'MemberExpression') {
     // static method
     const conf = staticTransform[p.parent.property['name']];
@@ -139,6 +116,7 @@ momentPath.scope.bindings['moment'].referencePaths.forEach((p) => {
 // });
 
 // ------------------------- replace `moment()` --------------------------------------------
+
 // if (context.importName) {
 //   // `moment()`
 //   root.find(j.CallExpression, { callee: { name: context.importName } }).replaceWith((path) => {
@@ -169,70 +147,50 @@ momentPath.scope.bindings['moment'].referencePaths.forEach((p) => {
 //   //     return path.node;
 //   //   });
 // }
+// replace moment constructor
+importPath?.scope.rename('moment', 'dayjs');
 
 // ------------------------- replace import and require --------------------------------------------
+
 traverse(ast, {
   // import
   ImportDeclaration(path) {
     if (path.node.source.value === 'moment') {
       path.node.source.value = 'Dayjs';
-
-      path.node.specifiers?.forEach((s) => {
-        if (s.type === 'ImportDefaultSpecifier') {
-          // replace moment constructor
-          s.local.name = 'dayjs';
-        } else if (s.type === 'ImportSpecifier' && s.imported['name'] === 'Moment') {
-          // replace Moment type
-          s.imported['name'] = 'Dayjs';
-        }
-      });
     }
   },
 
-  VariableDeclaration(path) {
-    
+  // require
+  VariableDeclarator(path) {
+    if (
+      path.get('init').isCallExpression({
+        callee: { type: 'Identifier', name: 'require' },
+        arguments: [{ value: 'moment' }],
+      })
+    ) {
+      // path.node.declarations[0]['init'].arguments[0] = j.stringLiteral('dayjs');
+      path.node.init['arguments'][0].value = 'dayjs';
+    }
   },
 });
-
-// require
-root
-  .find(j.VariableDeclaration, {
-    type: 'VariableDeclaration',
-    declarations: [
-      {
-        init: {
-          type: 'CallExpression',
-          callee: { type: 'Identifier', name: 'require' },
-          arguments: [{ value: 'moment' }],
-        },
-      },
-    ],
-  })
-  .replaceWith((path) => {
-    if (path.node.declarations?.[0]['init'].arguments[0]) {
-      path.node.declarations[0]['init'].arguments[0] = j.stringLiteral('dayjs');
-    }
-    return path.node;
-  });
 
 // ------------------------- replace Moment type --------------------------------------------
+// replace Moment type
+importTypePath?.scope.rename('Moment', 'Dayjs');
+// traverse(ast, {
+//   TSTypeReference(path) {
+//     if (path.node.typeName['name'] === 'Moment') {
+//       path.node.typeName['name'] = 'Dayjs';
 
-traverse(ast, {
-  TSTypeReference(path) {
-    if (path.node.typeName['name'] === 'Moment') {
-      path.node.typeName['name'] = 'Dayjs';
+//       // replace import type
+//       // traverse(path.node,{ImportSpecifier(path) {
 
-      // replace import type
-      // traverse(path.node,{ImportSpecifier(path) {
-
-      // }})
-    }
-  },
-});
+//       // }})
+//     }
+//   },
+// });
 
 // -----------------------------------------------------------------------------------------
-
-momentPath.scope.rename('moment', 'dayjs');
 
 const output = generate(ast);
 

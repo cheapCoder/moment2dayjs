@@ -36,7 +36,7 @@ moment().weekday(); // 上个星期一
 // ------------------------------
 
 
-console.log(moment() as Moment);
+// console.log(moment() as Moment);
 console.log(moment() as What);
 
 const a: Moment = moment('123');
