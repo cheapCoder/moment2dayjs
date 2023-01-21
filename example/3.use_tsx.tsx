@@ -12,6 +12,9 @@ moment.duration();
 
 // -------------------
 // Moment.js
+
+moment().add(7, 'days').add(1, 'months');
+
 moment().seconds();
 // => 49
 moment().hours();
@@ -34,7 +37,6 @@ dayjs().hour();
 moment().weekday(-7); // 上个星期一
 moment().weekday(); // 上个星期一
 // ------------------------------
-
 
 // console.log(moment() as Moment);
 console.log(moment() as What);
