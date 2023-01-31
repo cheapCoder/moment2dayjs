@@ -29,16 +29,22 @@ export const staticTransform = mapConfig({
   isMoment: {
     rename: 'isDayjs',
   },
+  duration: {
+    plugin: 'duration',
+  },
   // unix: no need change
 });
 
-// : {
-//   name: RegExp;
-//   rename?: string;
-//   plugin?: string[];
-//   transform?: (path: ASTPath<CallExpression>, context: any, tools: any) => any;
 // }[]
-export const methodTransform = mapConfig({
+export const methodTransform: Record<
+  string,
+  {
+    name: RegExp;
+    rename?: string;
+    plugin?: string[];
+    transform?: (path, context: any) => any;
+  }
+> = mapConfig({
   // -------------------------------- Get + Set ---------------------------
   milliseconds: { rename: 'millisecond' },
   seconds: { rename: 'second' },
@@ -101,10 +107,10 @@ export const methodTransform = mapConfig({
     plugin: 'utc',
   },
   utcOffset: {
-    transform: (path, context, { stats, report }) => {
+    transform: (path, context) => {
       // need utc plugin if has argument
-      if (path.node.arguments.length > 0) {
-        context.extendPlugins.push('utc');
+      if (path.node.arguments?.length > 0) {
+        context.plugin.push('utc');
       }
       return path;
     },
