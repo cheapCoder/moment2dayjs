@@ -10,7 +10,7 @@ const toString = (stats) => Object.keys(stats).join('\n\n');
 
 describe('fix project use', () => {
   it.concurrent('parse', async () => {
-    const transformPath = join(process.cwd(), './out/src/transform.js');
+    const transformPath = join(process.cwd(), './lib/src/transform.js');
 
     const paths = [join(process.cwd(), './example/4.static.ts')];
     // const paths = [join(process.cwd(), './example/4.basic.js')];

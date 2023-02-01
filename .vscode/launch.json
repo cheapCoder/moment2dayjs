@@ -81,7 +81,7 @@
       "type": "promptString",
       "id": "transformFile",
       "description": "jscodeshift transform file",
-      "default": "/out/src/transform.js"
+      "default": "/lib/src/transform.js"
     }
   ]
 }

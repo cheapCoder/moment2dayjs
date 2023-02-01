@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const glob = require('glob');
-const { default: transform } = require('../out/src/babel.js');
+const { default: transform } = require('../lib/src/babel.js');
 console.log(transform);
 async function run() {
   const root = process.cwd();
