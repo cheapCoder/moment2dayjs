@@ -34,7 +34,7 @@ function getEntry() {
 
 async function run() {
   const root = process.cwd();
-  const transformPath = resolve(__dirname, '../lib/src/transform.js');
+  const transformPath = resolve(__dirname, '../lib/transform.js');
 
   const paths = [process.cwd()];
   const options = {
@@ -57,7 +57,7 @@ async function run() {
   console.log(entry);
 
   if (entry) {
-    jscodeshift(resolve(__dirname, '../lib/src/entryTransform.js'), [entry], {
+    jscodeshift(resolve(__dirname, '../lib/entryTransform.js'), [entry], {
       dry: false,
       plugins,
       verbose: 2,
