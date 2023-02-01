@@ -3,7 +3,7 @@
 const { run: jscodeshift } = require('jscodeshift/src/Runner');
 const { existsSync } = require('node:fs');
 const { resolve } = require('node:path');
-const glo = require('../src/global');
+const chalk = require('chalk');
 
 function getEntry() {
   const projectRoot = process.cwd();
@@ -33,40 +33,41 @@ function getEntry() {
 }
 
 async function run() {
-  const transformPath = resolve(__dirname, '../out/transform.js');
-  
-  const paths = [resolve(process.cwd(), 'src')];
+  const root = process.cwd();
+  const transformPath = resolve(__dirname, '../out/src/transform.js');
+
+  const paths = [process.cwd()];
   const options = {
-    // dry: true,
-    // print: true,
-    // verbose: 1,
-    // ...
+    dry: true,
+    print: false,
+    verbose: 2,
+    extensions: 'js,jsx,ts,tsx',
+    ignorePattern: 'node_modules',
+    ignoreConfig: [resolve(root, '.gitignore')],
   };
   const res = await jscodeshift(transformPath, paths, options);
 
-  console.log('global---------------------');
-
-  console.log(glo);
-
   console.log(res);
+
+  const plugins = Object.keys(res.stats);
+  if (!plugins.length) return;
 
   const entry = getEntry();
 
   console.log(entry);
 
   if (entry) {
-    jscodeshift(resolve(__dirname, '../out/entryTransform.js'), [entry], {});
+    jscodeshift(resolve(__dirname, '../out/src/entryTransform.js'), [entry], {
+      dry: false,
+      plugins,
+      verbose: 2,
+      print: true,
+    });
+  } else {
+    console.log(
+      chalk.bgRed('not found entry file, the plugins need inject yourself:\n' + plugins.join(', '))
+    );
   }
-  /*
-{
-  stats: {},
-  timeElapsed: '0.001',
-  error: 0,
-  ok: 0,
-  nochange: 0,
-  skip: 0
-}
-*/
 }
 
 // console.log(getEntry());

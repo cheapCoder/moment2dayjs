@@ -6,10 +6,6 @@ import { readFile, writeFile } from 'fs/promises';
 import { babelConfig, methodTransform, staticTransform, structureEqual } from './config';
 
 const transform = async (path) => {
-  // const path = resolve(root, './example/1.you_dont_know_moment.ts');
-  // const path = resolve(root, './example/3.use_tsx.tsx');
-  // const path = resolve(root, './example/4.static.ts');
-
   const code = await readFile(path, { encoding: 'utf-8' });
   console.log(code);
 
@@ -115,7 +111,7 @@ const transform = async (path) => {
   });
 
   // ------------------------- replace static method --------------------------------------------
-  importPath?.scope.bindings['moment']?.referencePaths.forEach((p) => {
+  importPath?.scope.bindings[context.importName]?.referencePaths.forEach((p) => {
     if (p.parent.type === 'MemberExpression') {
       // static method
       const conf = staticTransform[p.parent.property['name']];
@@ -139,7 +135,6 @@ const transform = async (path) => {
       if (conf.transform) {
         conf.transform(path, context);
       }
-
       if (conf.plugin) {
         context.plugin.push(...conf.plugin);
       }
@@ -207,13 +202,6 @@ const transform = async (path) => {
   }
 
   // ------------------------- replace Moment type --------------------------------------------
-  // traverse(ast, {
-  //   TSTypeReference(path) {
-  //     if (path.node.typeName['name'] === 'Moment') {
-  //       path.node.typeName['name'] = 'Dayjs';
-  //     }
-  //   },
-  // });
   importTypePath?.scope.rename('Moment', 'Dayjs');
   if (context.hasType) {
     importTypePath?.remove();
@@ -221,8 +209,7 @@ const transform = async (path) => {
 
   // -----------------------------------------------------------------------------------------
 
-  const output = generate(ast, {}, code);
-
+  const output = generate(ast, undefined, code);
   console.log(context);
   console.log('--------------------------');
   // console.log(output);

@@ -2,7 +2,7 @@ import { ParserOptions } from '@babel/parser';
 
 const mapConfig = (config: Record<string, Record<string, any>>) => {
   return Object.keys(config).reduce((copy, key) => {
-    // convert `xxx|xxx` to ['xxx', 'xxx']
+    // convert plugin `xxx|xxx` to ['xxx', 'xxx']
     if (config[key].plugin) {
       config[key].plugin = config[key].plugin.split('|');
     }
@@ -19,7 +19,17 @@ const mapConfig = (config: Record<string, Record<string, any>>) => {
   }, {});
 };
 
-export const staticTransform = mapConfig({
+type Config = Record<
+  string,
+  {
+    name: RegExp;
+    rename?: string;
+    plugin?: string[];
+    transform?: (path, context: any, api?: { report: (msg: string) => void }) => any;
+  }
+>;
+
+export const staticTransform: Config = mapConfig({
   'max|min': {
     plugin: 'minMax',
   },
@@ -35,16 +45,7 @@ export const staticTransform = mapConfig({
   // unix: no need change
 });
 
-// }[]
-export const methodTransform: Record<
-  string,
-  {
-    name: RegExp;
-    rename?: string;
-    plugin?: string[];
-    transform?: (path, context: any) => any;
-  }
-> = mapConfig({
+export const methodTransform: Config = mapConfig({
   // -------------------------------- Get + Set ---------------------------
   milliseconds: { rename: 'millisecond' },
   seconds: { rename: 'second' },
@@ -103,44 +104,28 @@ export const methodTransform: Record<
       return path;
     },
   },
-  utc: {
-    plugin: 'utc',
-  },
+  utc: { plugin: 'utc' },
   utcOffset: {
-    transform: (path, context) => {
-      // need utc plugin if has argument
-      if (path.node.arguments?.length > 0) {
+    transform: (path, context, api = {}) => {
+      // need utc plugin if has argument, different to babel, can't use path.parent
+      if (
+        path.parentPath?.node.type === 'CallExpression' &&
+        path.parentPath.node.arguments.length > 0
+      ) {
         context.plugin.push('utc');
       }
-      return path;
     },
   },
   // -------------------------------- Display ---------------------------
-  'fromNow|from|toNow|to': {
-    plugin: 'relativeTime',
-  },
-  calendar: {
-    plugin: 'calendar',
-  },
-  toArray: {
-    plugin: 'toArray',
-  },
-  toObject: {
-    plugin: 'toObject',
-  },
+  'fromNow|from|toNow|to': { plugin: 'relativeTime' },
+  calendar: { plugin: 'calendar' },
+  toArray: { plugin: 'toArray' },
+  toObject: { plugin: 'toObject' },
   // -------------------------------- Query ---------------------------
-  isSameOrBefore: {
-    plugin: 'isSameOrBefore',
-  },
-  isSameOrAfter: {
-    plugin: 'isSameOrAfter',
-  },
-  isBetween: {
-    plugin: 'isBetween',
-  },
-  isLeapYear: {
-    plugin: 'isLeapYear',
-  },
+  isSameOrBefore: { plugin: 'isSameOrBefore' },
+  isSameOrAfter: { plugin: 'isSameOrAfter' },
+  isBetween: { plugin: 'isBetween' },
+  isLeapYear: { plugin: 'isLeapYear' },
 
   // {
   //   name: /^isDate$/,

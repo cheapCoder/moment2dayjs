@@ -1,178 +1,247 @@
 import { Transform } from 'jscodeshift';
-
-import { methodTransform, staticTransform } from './config';
-import global from './global';
+import * as t from 'jscodeshift';
+import { methodTransform, staticTransform, structureEqual } from './config';
+import { writeFileSync } from 'fs';
 
 const transform: Transform = (file, { j, report, stats }, option) => {
-  // report(JSON.stringify(option));
-
   try {
     const root = j(file.source);
 
     // get context
     const context = {
+      // hasImport: false,
+      types: [],
       importName: undefined,
-      importTypeName: undefined,
+      hasImportType: false,
       /** global import plugin  */
-      extendPlugins: [],
+      plugin: [],
       /** global import locale */
       extendLocale: new Set(),
     };
 
-    // get default import moment's name
+    // get default import moment name, moment type and replace the value
+    root.find(j.ImportDeclaration).forEach((path) => {
+      if (path.node.source.value === 'moment') {
+        path.node.specifiers.forEach((n) => {
+          if (n.type === 'ImportDefaultSpecifier') {
+            // import moment name
+            context.importName = n.local.name;
+
+            // replace name
+            n.local = j.identifier('dayjs');
+          } else if (structureEqual(n, { type: 'ImportSpecifier', imported: { name: 'Moment' } })) {
+            //get ts type name
+            context.hasImportType = true;
+
+            // replace type
+            (n as t.ImportSpecifier).imported['name'] = 'Dayjs';
+          }
+        });
+
+        path.node.source.value = 'dayjs';
+      } else if (path.node.source.value === 'dayjs') {
+        // ensure has import dayjs?
+        path.node.specifiers.forEach((n) => {
+          if (n.type === 'ImportDefaultSpecifier') {
+            // context.hasImport = true;
+          } else if (
+            structureEqual(n, {
+              type: 'ImportSpecifier',
+              imported: {
+                name: 'Dayjs',
+              },
+            })
+          ) {
+            context.hasImportType = true;
+          }
+        });
+      } else {
+        report(path.node.source.type);
+        // replace import locale file
+        const matchLocale =
+          path.node.source.type === 'StringLiteral' &&
+          path.node.source.value.match(/moment\/(dist\/)?locale\/([-a-z]+)/);
+        if (matchLocale && matchLocale[2]) {
+          path.node.source.value = `dayjs/locale/${matchLocale[2]}`;
+        }
+      }
+    });
+
+    // replace require moment
     root
-      .find(j.ImportDeclaration, { source: { value: 'moment' } })
-      ?.find(j.ImportDefaultSpecifier)
+      .find(j.VariableDeclarator, {
+        init: {
+          type: 'CallExpression',
+          callee: { type: 'Identifier', name: 'require' },
+          arguments: [{ value: 'moment' }],
+        },
+      })
       .forEach((path) => {
-        context.importName = path.node.local.name;
+        const patternNode = path.node.id;
+        if (patternNode.type === 'Identifier') {
+          context.importName = patternNode.name;
+          patternNode.name = 'dayjs';
+        } else if (patternNode.type === 'ObjectPattern') {
+          const typeNode = patternNode.properties.find(
+            (n) =>
+              n.type === 'ObjectProperty' && n.key.type === 'Identifier' && n.key.name === 'Moment'
+          ) as t.ObjectProperty;
+
+          if (typeNode) {
+            typeNode.key['name'] = 'Dayjs';
+          }
+        }
+
+        path.node.init['arguments'][0].value = 'dayjs';
+      });
+
+    // set default value
+    context.importName ||= 'moment';
+
+    // replace require locale file
+    root
+      .find(j.CallExpression, { callee: { type: 'Identifier', name: 'require' } })
+      .forEach((path) => {
+        const matchLocale = (path.node.arguments[0]['value'] as string).match(
+          /moment\/(dist\/)?locale\/([-a-z]+)/
+        );
+        if (matchLocale && matchLocale[2]) {
+          path.node.arguments[0]['value'] = `dayjs/locale/${matchLocale[2]}`;
+        }
       });
 
     // ------------------------- replace static method --------------------------------------------
-    staticTransform.forEach((conf) => {
-      root
-        .find(
-          j.CallExpression,
-          (node) =>
-            node.callee.type === 'MemberExpression' &&
-            node.callee.object.type === 'Identifier' &&
-            node.callee.object.name === context.importName &&
-            node.callee.property.type === 'Identifier' &&
-            conf.name.test(node.callee.property.name)
-        )
-        .replaceWith((path) => {
-          if (conf.plugin) {
-            context.extendPlugins.push(...conf.plugin);
-          }
-          if (conf.rename) {
-            path.node.callee['property'] = j.identifier(conf.rename);
-          }
-          path.node.callee['object'] = j.identifier('dayjs');
-          return path.node;
-        });
+    root.find(j.MemberExpression, { object: { name: context.importName } }).forEach((path) => {
+      const conf = staticTransform[path.node.property['name']];
+      if (conf?.plugin) {
+        context.plugin.push(...conf.plugin);
+      }
+      if (conf?.rename) {
+        path.node.property = j.identifier(conf.rename);
+      }
+      path.node.object = j.identifier('dayjs');
     });
 
     // ------------------------- replace instance method --------------------------------------------
-    methodTransform.forEach((conf) => {
-      root
-        .find(j.CallExpression, (node) => conf.name.test(node.callee?.property?.name))
-        .replaceWith((path) => {
-          if (conf.transform) {
-            path = conf.transform(path, context, { stats, report });
-          }
-          if (conf.plugin) {
-            context.extendPlugins.push(...conf.plugin);
-          }
-          if (conf.rename) {
-            path.node.callee.property = j.identifier(conf.rename);
-          }
+    root.find(j.MemberExpression).forEach((path) => {
+      const conf = methodTransform[path.node.property?.['name']];
+      if (!conf) return;
 
-          return path.node;
-        });
+      if (conf.transform) {
+        try {
+          conf.transform(path, context, { report });
+        } catch (error) {
+          report(error.message);
+        }
+      }
+      if (conf.plugin) {
+        context.plugin.push(...conf.plugin);
+      }
+      if (conf.rename) {
+        path.node.property = j.identifier(conf.rename);
+      }
     });
 
-    // ------------------------- replace `moment()` --------------------------------------------
-    if (context.importName) {
-      // `moment()`
-      root.find(j.CallExpression, { callee: { name: context.importName } }).replaceWith((path) => {
-        // transform array to ...string
-        // TODO:
-        // transform object to ...string
-        // TODO:
+    // // ------------------------- replace `moment()` --------------------------------------------
+    root.find(j.CallExpression, { callee: { name: context.importName } }).forEach((path) => {
+      // transform array to ...string
+      // TODO:
+      // transform object to ...string
+      // TODO:
 
-        if (path.node.arguments.length > 1) {
-          // has second argument -> moment('2022-1-1', 'YYYY-MM-DD HH:mm')
-          context.extendPlugins.push('customParseFormat');
-        }
-        if (path.node.arguments.length > 2 && path.node.arguments[2].type === 'StringLiteral') {
-          // add locale plugin
-          context.extendLocale.add(path.node.arguments[2].value);
-        }
-        path.node.callee = j.identifier('dayjs');
-        return path.node;
-      });
-
-      // `moment.xxx`
-      // root
-      //   .find(j.CallExpression, {
-      //     callee: { type: 'MemberExpression', object: { name: context.importName } },
-      //   })
-      //   .replaceWith((path) => {
-      //     path.node.callee.object = j.identifier('dayjs');
-      //     return path.node;
-      //   });
-    }
-
-    // ------------------------- replace import and require --------------------------------------------
-    // import
-    const hasImportDayjs = root.find(j.ImportDeclaration, { source: { value: 'dayjs' } }).size();
-
-    root.find(j.ImportDeclaration, { source: { value: 'moment' } }).replaceWith((path) => {
-      // replace to `import ... from dayjs`
-      path.node.source = j.literal('dayjs');
-
-      path.node.specifiers = path.node.specifiers?.map((s) => {
-        if (s.type === 'ImportDefaultSpecifier') {
-          // replace moment constructor
-          return j.importDefaultSpecifier(j.identifier('dayjs'));
-        } else if (s.type === 'ImportSpecifier' && s.imported.name === 'Moment') {
-          // replace Moment type
-          return j.importSpecifier(j.identifier('Dayjs'));
-        }
-      });
-
-      return hasImportDayjs ? '' : path.node;
+      if (path.node.arguments.length > 1) {
+        // has second argument -> moment('2022-1-1', 'YYYY-MM-DD HH:mm')
+        context.plugin.push('customParseFormat');
+      }
+      // TODO: is Literal ?
+      if (path.node.arguments.length > 2 && path.node.arguments[2].type === 'Literal') {
+        // add locale plugin
+        context.extendLocale.add(path.node.arguments[2].value);
+      }
+      path.node.callee = j.identifier('dayjs');
     });
 
-    // require
-    root
-      .find(j.VariableDeclaration, {
-        type: 'VariableDeclaration',
-        declarations: [
-          {
-            init: {
-              type: 'CallExpression',
-              callee: { type: 'Identifier', name: 'require' },
-              arguments: [{ value: 'moment' }],
-            },
-          },
-        ],
-      })
-      .replaceWith((path) => {
-        if (path.node.declarations?.[0]['init'].arguments[0]) {
-          path.node.declarations[0]['init'].arguments[0] = j.stringLiteral('dayjs');
-        }
-        return path.node;
-      });
+    // // ------------------------- replace import and require --------------------------------------------
+    // // import
+    // const hasImportDayjs = root
+    //   .find(j.ImportDeclaration, {
+    //     source: {
+    //       value: 'dayjs',
+    //     },
+    //   })
+    //   .size();
+    // root
+    //   .find(j.ImportDeclaration, {
+    //     source: {
+    //       value: 'moment',
+    //     },
+    //   })
+    //   .replaceWith((path) => {
+    //     // replace to `import ... from dayjs`
+    //     path.node.source = j.literal('dayjs');
+    //     path.node.specifiers = path.node.specifiers?.map((s) => {
+    //       if (s.type === 'ImportDefaultSpecifier') {
+    //         // replace moment constructor
+    //         return j.importDefaultSpecifier(j.identifier('dayjs'));
+    //       } else if (s.type === 'ImportSpecifier' && s.imported.name === 'Moment') {
+    //         // replace Moment type
+    //         return j.importSpecifier(j.identifier('Dayjs'));
+    //       }
+    //     });
+    //     return hasImportDayjs ? '' : path.node;
+    //   });
+
+    // // require
+    // root
+    //   .find(j.VariableDeclaration, {
+    //     type: 'VariableDeclaration',
+    //     declarations: [
+    //       {
+    //         init: {
+    //           type: 'CallExpression',
+    //           callee: {
+    //             type: 'Identifier',
+    //             name: 'require',
+    //           },
+    //           arguments: [
+    //             {
+    //               value: 'moment',
+    //             },
+    //           ],
+    //         },
+    //       },
+    //     ],
+    //   })
+    //   .replaceWith((path) => {
+    //     if (path.node.declarations?.[0]['init'].arguments[0]) {
+    //       path.node.declarations[0]['init'].arguments[0] = j.stringLiteral('dayjs');
+    //     }
+    //     return path.node;
+    //   });
 
     // -----------------------------------------------------------------------------------------
 
     // ------------------------- replace Moment type --------------------------------------------
-    // get Type name  from `import` or `import type`
-    // let typeName = 'Moment';
-    // root
-    //   .find(j.ImportDeclaration, { source: { value: 'moment' } })
-    //   ?.find(j.ImportDefaultSpecifier)
-    //   .forEach((path) => {
-    //     context.importName = path.node.local.name;
-    //   });
-
-    root
-      .find(j.TSTypeReference, {
-        typeName: { name: 'Moment' },
-      })
-      .replaceWith(() => j.tsTypeReference(j.identifier('Dayjs')));
-
+    if (context.hasImportType) {
+      root
+        .find(j.TSTypeReference, {
+          typeName: {
+            name: 'Moment',
+          },
+        })
+        .replaceWith(() => j.tsTypeReference(j.identifier('Dayjs')));
+    }
     // -----------------------------------------------------------------------------------------
 
-    const res = root.toSource();
+    const res = root.toSource({ quote: 'auto' });
+    const plugins = [...new Set(context.plugin)];
+    plugins.length && stats(plugins.join('\n'));
 
-    const plugins = [...new Set(context.extendPlugins)];
-
-    globalThis['plugins'] = [...(globalThis['plugins'] || []), '123123123'];
-    stats(plugins.join('\n'));
+    // dry run don't write the file
+    writeFileSync(file.path, res, { encoding: 'utf-8' });
     return res;
   } catch (error) {
-    stats(error.message);
+    report(error.message);
   }
 };
 

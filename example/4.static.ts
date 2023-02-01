@@ -1,25 +1,29 @@
-const moment = require('moment')
+const dayjs = require("dayjs");
+require("dayjs/locale/zh-cn");
+import "dayjs/locale/zh-cn";
 
-const {Moment} = require('moment')
-var duration = moment.duration({'days' : 1});
+dayjs.locale('zh-cn') 
 
-var a = moment.utc([2011, 0, 1, 8]);
+const { Dayjs } = require("dayjs");
+var duration = dayjs.duration({ days: 1 });
 
-moment.parseZone('2016-05-03T22:15:01+02:00').local().format();
+var a = dayjs.utc([2011, 0, 1, 8]);
 
-moment.isMoment(new Date()) // false
+dayjs.parseZone('2016-05-03T22:15:01+02:00').local().format();
 
-moment.isDate(new Date()); // true
+dayjs.isDayjs(new Date()); // false
 
-moment.locale("");
+dayjs.isDate(new Date()); // true
 
-moment.months()
-moment.monthsShort()
-moment.weekdays()
-moment.weekdaysShort()
-moment.weekdaysMin()
+dayjs.locale('');
 
-moment.unix(132123123)
+dayjs.month();
+dayjs.monthsShort();
+dayjs.weekdays();
+dayjs.weekdaysShort();
+dayjs.weekdaysMin();
 
-moment.max()
-moment.min
+dayjs.unix(132123123);
+
+dayjs.max();
+dayjs.min;

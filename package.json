@@ -12,7 +12,7 @@
     "email": "lihengnie@gmail.com"
   },
   "main": "./src/transform.ts",
-  "bin": "./out/bin/cli.js",
+  "bin": "./bin/cli2.js",
   "repository": "https://github.com/cheapCoder/moment2dayjs",
   "license": "MIT",
   "scripts": {
@@ -22,7 +22,7 @@
   "dependencies": {
     "@babel/parser": "^7.20.7",
     "@babel/traverse": "^7.20.10",
-    "chalk": "^5.2.0",
+    "chalk": "^4.0.0",
     "date-fns": "^2.29.3",
     "dayjs": "^1.11.7",
     "glob": "^8.1.0",
