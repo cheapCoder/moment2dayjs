@@ -7,17 +7,17 @@ const chalk = require('chalk');
 
 function getEntry() {
   const projectRoot = process.cwd();
-  try {
-    const packageJson = require(resolve(projectRoot, 'package.json'));
-    if (packageJson.main) {
-      const path = resolve(projectRoot, packageJson.main);
-      if (existsSync(path)) {
-        return path;
-      }
-    }
-  } catch (error) {
-    console.error('no package.json entry');
-  }
+  // try {
+  //   const packageJson = require(resolve(projectRoot, 'package.json'));
+  //   if (packageJson.main) {
+  //     const path = resolve(projectRoot, packageJson.main);
+  //     if (existsSync(path)) {
+  //       return path;
+  //     }
+  //   }
+  // } catch (error) {
+  //   console.error('no package.json entry');
+  // }
 
   const ext = ['.js', '.ts', '.jsx', '.tsx'];
   const filenames = ['index', 'main', 'app'];
@@ -43,13 +43,13 @@ async function run() {
     verbose: 2,
     extensions: 'js,jsx,ts,tsx',
     ignorePattern: 'node_modules',
-    ignoreConfig: [resolve(root, '.gitignore')],
+    // ignoreConfig: [resolve(root, '.gitignore')],
   };
   const res = await jscodeshift(transformPath, paths, options);
 
   console.log(res);
 
-  const plugins = Object.keys(res.stats);
+  const plugins = Object.keys(res.stats).join('|').split('|');
   if (!plugins.length) return;
 
   const entry = getEntry();
